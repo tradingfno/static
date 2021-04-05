@@ -17,7 +17,402 @@
 * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
 * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
 */
+/*
+* Parameters:
+*
+*
+* -------------
 
+* column_number
+                Required:           true
+                Type:               int
+                Description:        The number of the column to which the filter will be applied
+
+* filter_type
+                Required:           false
+                Type:               String
+                Default value:      'select'
+                Possible values:    select / multi_select / auto_complete / text / date / range_number / range_number_slider / range_date / custom_func / multi_select_custom_func / date_custom_func
+                Description:        The type of the filter to be used in the column
+
+* custom_func
+                Required:           true (when filter_type is custom_func / multi_select_custom_func / date_custom_func)
+                Type:               function
+                Default value:      undefined
+                Description:        should be pointing to a function with the following signature myCustomFilterFunction(filterVal, columnVal, rowValues, stateVal) , where `filterVal` is the value from the select box,
+                                    `columnVal` is the value from the relevant row column, `rowValues` is an array that holds the values of the entire row and `stateVal` which holds the current state of the table row DOM
+                                    , stateVal is perfect to handle situations in which you placing radiobuttons / checkbox inside table column. This function should return true if the row matches your condition and the row should be displayed) and false otherwise
+                Note:               When using multi_select_custom_func as filter_type filterVal will hold an array of selected values from the multi select element
+
+* data
+                Required:           false
+                Type:               Array (of string or objects)
+                Description:        When the need of predefined data for filter is needed just use an array of strings ["value1","value2"....] (supported in select / multi_select / auto_complete filters) or
+                                    array of objects [{value: 'Some Data 1', label: 'One'}, {value: 'Some Data 3', label: 'Three'}] (supported in select / multi_select filters)
+                Note:               that when filter_type is custom_func / multi_select_custom_func this array will populate the custom filter select element
+
+* data_as_is
+                Required:           false
+                Type:               boolean
+                Default value:      false
+                Description:        When set to true, the value of the data attribute will be fed into the filter as is (without any modification/decoration).
+                                    Perfect to use when you want to define your own <option></option> for the filter
+                Note:               Currently supported by the select / multi_select filters
+
+* append_data_to_table_data
+                Required:           false
+                Type:               String
+                Default value:      undefined
+                Possible values:    before / sorted
+                Description:        Use 'before' to place your data array before the values that yadcf grabs from the table
+                                    use 'sorted' to place the data array sorted along with the values that yadcf grabs from the table
+                Note:               'sorted' option will have affect only if you data is an array of primitives (not objects)
+
+* column_data_type
+                Required:           false
+                Type:               String
+                Default value:      'text'
+                Possible values:    text / html / rendered_html
+                Description:        The type of data in column , use "html" when you have some html code in the column (support parsing of multiple elements per cell),
+                                    use rendered_html when you are using render function of columnDefs or similar, that produces a html code, note that both types rendered_html and html have a fallback for simple text parsing
+
+* text_data_delimiter
+                Required:           false
+                Type:               String
+                Description:        Delimiter that seperates text in table column, for example text_data_delimiter: ","
+
+* html_data_type
+                Required:           false
+                Type:               String
+                Default value:      'text'
+                Possible values:    text / value / id / selector
+                Description:        When using "html" for column_data_type argument you can choose how exactly to parse your html element/s in column , for example use "text" for the following <span class="someClass">Some text</span>
+                Special notes:      when using selector you must provide a valid selector string for the html_data_selector property
+
+* html_data_selector
+                Required:           false
+                Type:               String
+                Default value:      undefined
+                Possible values:    any valid selector string, for example 'li:eq(1)'
+                Description:        allows for advanced text value selection within the html located in the td element
+                Special notes:      know that the selector string "begin is search" from (and not outside) the first element of the html inside the td
+                                    (supported by range_number_slider / select / auto_complete)
+
+* html5_data
+                Required:           false
+                Type:               String
+                Default value:      undefined
+                Possible values:    data-filter / data-search / anything that is supported by datatables
+                Description:        Allows to filter based on data-filter / data-search attributes of the <td> element, read more: http://www.datatables.net/examples/advanced_init/html5-data-attributes.html
+
+* filter_container_id
+                Required:           false
+                Type:               String
+                Description:        In case that user don't want to place the filter in column header , he can pass an id of the desired container for the column filter
+
+* filter_container_selector
+                Required:           false
+                Type:               String
+                Description:        In case that user don't want to place the filter in column header , he can pass a (jquery) selector of the desired container for the column filter
+
+* filter_default_label
+                Required:           false
+                Type:               String / Array of string in case of range_number filter (first entry is for the first input and the second entry is for the second input
+                Default value:      'Select value'
+                Description:        The label that will appear in the select menu filter when no value is selected from the filter
+
+* omit_default_label
+                Required:           false
+                Type:               boolean
+                Default value:      false
+                Description:        Prevent yadcf from adding "default_label" (Select value / Select values)
+                Note                Currently supported in select / multi_select / custom_func / multi_select_custom_func
+
+* filter_reset_button_text
+                Required:           false
+                Type:               String / boolean
+                Default value:      'x'
+                Description:        The text that will appear inside the reset button next to the select drop down (set this to false (boolean) in order to hide it from that column filter)
+
+* enable_auto_complete (this attribute is deprecated , and will become obsolete in the future , so you better start using filter_type: "auto_complete")
+                Required:           false
+                Type:               boolean
+                Default value:      false
+                Description:        Turns the filter into an autocomplete input - make use of the jQuery UI Autocomplete widget (with some enhancements)
+
+* sort_as
+                Required:           false
+                Type:               String
+                Default value:      'alpha'
+                Possible values:    alpha / num / alphaNum / none
+                Description:        Defines how the values in the filter will be sorted, alphabetically / numerically / alphanumeric / custom / not sorted at all (none is useful to preserve
+                                    the order of the data attribute as is)
+                Note:               When custom value is set you must provide a custom sorting function for the sort_as_custom_func property
+
+* sort_as_custom_func
+                Required:           false
+                Type:               function
+                Default value:      undefined
+                Description:        Allows to provide a custom sorting function for the filter elements
+
+* sort_order
+                Required:           false
+                Type:               String
+                Default value:      'asc'
+                Possible values:    asc / desc
+                Description:        Defines the order in which the values in the filter will be sorted, ascending or descending
+
+* date_format
+                Required:           false
+                Type:               String
+                Default value:      'mm/dd/yyyy'
+                Possible values:    mm/dd/yyyy / dd/mm/yyyy / hh:mm (when using datepicker_type: 'bootstrap-datetimepicker')
+                Description:        Defines the format in which the date values are being parsed into Date object
+                Note:               You can replace the / separator with other one , for example mm-dd-yy
+
+* moment_date_format
+                Required:           false
+                Type:               String
+                Default value:      undefined
+                Possible values:    Any format accepted by momentjs
+                Description:        Defines the format in which the date values are being parsed into Date object by momentjs library
+                Note:               Currently relevant only when using datepicker_type: 'bootstrap-datetimepicker')
+
+* ignore_char
+                Required:           false
+                Type:               String
+                Description:        Tells the range_number and range_number_slide to ignore specific char while filtering (that char can used as number separator)
+                Note:               Use double escape for regex chars , e.g \\$ , also you can use multiple ignore chars with | , e.g '_|\\.|\\$'
+
+* filter_match_mode
+                Required:           false
+                Type:               String
+                Default value:      contains
+                Possible values:    contains / exact / startsWith / regex
+                Description:        Allows to control the matching mode of the filter (supported in select / auto_complete / text filters)
+
+* exclude
+                Required:           false
+                Type:               boolean
+                Default value:      undefined
+                Description:        Adds a checkbox next to the filter that allows to do a "not/exclude" filtering (acts the same  all filter_match_mode)
+                Note:               Currently available for the text filter
+
+* exclude_label
+                Required:           false
+                Type:               String
+                Default value:      'exclude'
+                Description:        The label that will appear above the exclude checkbox
+
+* select_type
+                Required:           false
+                Type:               String
+                Default value:      undefined
+                Possible values:    chosen / select2 / custom_select
+                Description:        Turns the simple select element into Chosen / Select2 (make use of the Chosen / Select2 select jQuery plugins)
+                Note:               When using custom_select , make sure to call the initSelectPluginCustomTriggers,
+                                    before calling yadcf constructor / init function
+
+* select_type_options
+                Required:           false
+                Type:               Object
+                Default value:      {}
+                Description:        This parameter will be passed "as is" to the Chosen/Select2 plugin constructor
+
+* filter_plugin_options
+                Required:           false
+                Type:               Object
+                Default value:      undefined
+                Description:        This parameter will be passed to the jQuery Autocomplete / jQuery Slider / Bootstrap Datetimepicker
+
+* case_insensitive
+                Required:           false
+                Type:               boolean
+                Default value:      true
+                Description:        Do case-insensitive filtering (supported in select / auto_complete / text filters)
+
+
+* filter_delay
+                Required:           false
+                Type:               integer
+                Default value:      undefined
+                Description:        Delay filter execution for a XXX milliseconds - filter will fire XXX milliseconds after the last keyup.
+                Special notes:      Currently supported in text / range_number / range_date filters / range_number_slider
+
+* datepicker_type
+                Required:           false
+                Type:               String
+                Default value:      'jquery-ui'
+                Possible values:    'jquery-ui' / 'bootstrap-datetimepicker' / bootstrap-datepicker
+                Description:        You can choose datapicker library from defined in special notes
+                Special notes:      Currently supported only jQueryUI datepicker (datepicker) and Bootstrap datepicker (eonasdan-bootstrap-datetimepicker)
+                                    Bootstrap datepicker depends moment library. This plugin depends moment too.
+
+* style_class
+                Required:           false
+                Type:               String
+                Description:        Allows adding additional class/classes to filter - available for the following filters:
+                                    select / multi_select / text / custom_func / multi_select_custom_func / range_number / range_number_slider / range_date
+
+* reset_button_style_class
+                Required:           false
+                Type:               String
+                Description:        Allows adding additional class/classes to filter reset button
+
+
+* Global Parameters (per table rather than per column)
+*
+* Usage example yadcf.init(oTable,[{column_number : 0}, {column_number: 3}],{cumulative_filtering: true});
+* -------------
+
+* externally_triggered
+                Required:           false
+                Type:               boolean
+                Default value:      false
+                Description:        Filters will filter only when yadcf.exFilterExternallyTriggered(table_arg) is called
+                Special notes:      Useful when you want to build some form with filters and you want to trigger the filter when that form
+                                    "submit" button is clicked (instead of filtering per filter input change)
+
+* cumulative_filtering
+                Required:           false
+                Type:               boolean
+                Default value:      false
+                Description:        Change the default behaviour of the filters so its options will be populated from the filtered rows (remaining
+                                    table data after filtering) only, unlike the normal behaviour in which the options of the filters are from all the table data
+
+
+* filters_position
+                Required:           false
+                Type:               String
+                Default value:      header
+                Possible values:    'header' / 'footer'
+                Description:        Filters can be placed in the header (thead) or in the footer (tfoot) of the table,
+                Note:               When 'footer' you must provide a valid tfoot elemet in your table
+
+
+* filters_tr_index
+                Required:           false
+                Type:               integer
+                Default value:      undefined
+                Description:        Allow to control the index of the <tr> inside the thead of the table, e.g when one <tr> is used for headers/sort and
+                                    another <tr> is used for filters
+
+
+* onInitComplete
+                Required:           false
+                Type:               function
+                Default value:      undefined
+                Description:        Calls the provided callback function in the end of the yadcf init function
+				Note:               This callback function will run before datatables fires its event such as draw/xhr/etc., migth be usefull for call some
+									third parties init / loading code
+*
+*
+*
+*
+* External API functions:
+*
+*
+* -------------
+
+* exFilterColumn
+                Description:        Allows to trigger filter/s externally/programmatically (support ALL filter types!!!) , perfect for showing table with pre filtered columns
+                Arguments:          table_arg: (variable of the datatable),
+                                    array of pairs: column number String/Object with from and to, filter_value (the actual string value that we want to filter by)
+                Usage example:      yadcf.exFilterColumn(oTable, [[0, 'Some Data 2']]); //pre filter one column
+                                    yadcf.exFilterColumn(oTable, [[0, 'Some Data 1'], [1, {from: 111, to: 1110}], [2, {from: "", to: "11/25/2014"}]]); //pre filter several columns
+                                    yadcf.exFilterColumn(oTable, [[0, ['Some Data 1','Some Data 2']]]); // for pre filtering multi select filter you should use array with values (or an array with single value)
+
+* exGetColumnFilterVal
+                Description:        Allows to retrieve  column current filtered value (support ALL filter types!!!)
+                Arguments:          table_arg: (variable of the datatable),
+                                    column number:  column number from which we want the value
+                Usage example:      yadcf.exGetColumnFilterVal(oTable,1);
+                Return value:       String (for simple filter) / Object (for range filter) with from and to properties / Array of strings for multi_select filter
+
+
+* exResetAllFilters
+                Description:        Allows to reset all filters externally/programmatically (support ALL filter types!!!) , perfect for adding a "reset all" button to your page!
+                Arguments:          table_arg: (variable of the datatable)
+                                    noRedraw:   (boolean) , use it if you don't want your table to be reloaded after the filter reset,
+                                                for example if you planning to call exFilterColumn function right after the exResetAllFilters (to avoid two AJAX requests)
+                Usage example:      yadcf.exResetAllFilters(oTable);
+
+* exResetFilters
+                Description:        Allows to reset specific filters externally/programmatically (support ALL filter types!!!) , can be used for resetting one or more filters
+                Arguments:          table_arg: (variable of the datatable)
+                                    array with columns numbers
+                                    noRedraw:   (boolean) , use it if you don't want your table to be reloaded after the filter reset,
+                                                for example if you planning to call exFilterColumn function right after the exResetFilters (to avoid two AJAX requests)
+                Usage example:      yadcf.exResetAllFilters(oTable, [1,2]);
+
+* initSelectPluginCustomTriggers
+                Description:        Allows to set any select jquery plugin initialize and refresh functions. jQuery selector will be passed to the user defined function to initialize and refresh the plugin.
+                                    Great for integrating any jquey select plugin  (Selectize / MultiSelect / etc)
+                Arguments:          initFunc  : function which will initialize the plugin
+                                    refreshFunc : function that will refresh the plugin.
+                                    destroyFunc : function that will destroy the plugin (upon table destroy even trigger).
+                Usage example:      yadcf.initSelectPluginCustomTriggers(function ($filterSelector){$filterSelector.multiselect({});}, function ($filterSelector){$filterSelector.multiselect("refresh")}, , function ($filterSelector){$filterSelector.multiselect("destroy")});
+
+* exFilterExternallyTriggered
+                Description:        Triggers all the available filters, should be used only when the externally_triggered option used
+                Arguments:          table_arg: (variable of the datatable)
+                Usage example:      yadcf.exResetAllFilters(table_arg);
+*
+*
+*
+* Server-side processing API (see more on showcase):
+*
+* From server to client:
+* In order to populate the filters with data from server (select / auto_complete / range_number_slider (min and max values), you should add to your current json respond the following properties:
+* lets say for first column you add yadcf_data_0 filled with array of values, for column second column yadcf_data_1 and so on...
+*
+* From client to server:
+* Read the filtered value like this (for first column) req.getParameter("columns[0][search][value]"); <- java code , php/.Net/etc you just need to get it from the request
+* Range filter value will arrive delimited by  -yadcf_delim- , so just split it into an array or something like this: String[] minMax = sSearch_0.split("-yadcf_delim-");
+*
+*
+
+
+*
+*
+*
+* Working with filters for multiple tables:
+*
+*
+* -------------
+
+* initMultipleTables
+                Description:        Allows to create filter that will affect multiple tables / multiple column(s) in multiple tables
+                Arguments:          Array of tables,
+                                    Array of objects with properties for each filter
+                Usage example:      yadcf.initMultipleTables([oTable, oTable2], [{
+                                        column_number: [0, 1], filter_container_id: 'multi-table-filter-0', filter_default_label: 'Filter all tables columns 1 and 2!'
+                                    },
+                                    {
+                                        column_number: [2], filter_container_id: 'multi-table-filter-1', filter_default_label: 'Filter all tables column 3!'
+                                    }]);
+                Valid properties:   filter_type: 'text' (default) / 'select' / 'multi_select',
+                                    column_number: not required (in that case the filter will be global)
+                                                   can be either number(single column filter) or array of numbers(multiple columns filter)
+                                    filter_container_id: '' (required),
+                Note:               All the usual properties of yadcf should be supported in initMultipleTables too!
+
+* initMultipleColumns
+                Description:        Allows to create filter that will affect multiple column(s) in in a particular table
+                Arguments:          Table variable,
+                                    Array of objects with properties for each filter
+                Usage example:      yadcf.initMultipleColumns(oTable, [{
+                                        column_number: [0, 1], filter_container_id: 'multi-table-filter-0', filter_default_label: 'Filter columns 1 and 2!'
+                                    },
+                                    {
+                                        column_number: [2, 3], filter_container_id: 'multi-table-filter-1', filter_default_label: 'Filter column 3 and 4!'
+                                    }]);
+                Valid properties:   filter_type: 'text' (default) / 'select' / 'multi_select',
+                                    column_number: not required (in that case the filter will be global)
+                                                   can be either number(single column filter) or array of numbers(multiple columns filter)
+                                    filter_container_id: '' (required),
+                Note:               All the usual properties of yadcf should be supported in initMultipleColumns too!
+*/
 //Polyfills
 if (window.NodeList && !NodeList.prototype.forEach) {
     NodeList.prototype.forEach = function (callback, thisArg) {
@@ -3171,7 +3566,17 @@ if (!Object.entries) {
 				serachVal = event.target.value;
 				smart = false;
 				caseInsen = columnsObj.case_insensitive;
-
+	/*
+				if (columnsObj.filter_match_mode === "contains") {
+					regex = false;
+				} else if (columnsObj.filter_match_mode === "exact") {
+					regex = true;
+					serachVal = "^" + serachVal + "$";
+				} else if (columnsObj.filter_match_mode === "startsWith") {
+					regex = true;
+					serachVal = "^" + serachVal;
+				}
+	*/
 				if (columnsObj.column_number instanceof Array) {
 					tablesAsOne.columns(columnsObj.column_number).search(serachVal, regex, smart, caseInsen).draw();
 				} else {
@@ -3759,7 +4164,23 @@ if (!Object.entries) {
 			initMultipleTables(tablesArray, filtersOptions);
 		}
 
-	
+		function close3rdPPluginsNeededClose(evt) {
+			if (closeBootstrapDatepickerRange) {
+				$('.yadcf-filter-range-date').not($(evt.target)).datepicker('hide');
+			}
+			if (closeBootstrapDatepicker) {
+				$('.yadcf-filter-date').not($(evt.target)).datepicker('hide');
+			}
+			if (closeSelect2) {
+				let currentSelect2;
+				if (evt.target.className.indexOf('yadcf-filter-reset-button') !== -1) {
+					$('select.yadcf-filter').select2('close');
+				} else {
+					currentSelect2 = $($(evt.target).closest('.yadcf-filter-wrapper').find('select'));
+					$('select.yadcf-filter').not(currentSelect2).select2('close');
+				}
+			}
+		}
 		
 		function stopPropagation(evt) {
 			close3rdPPluginsNeededClose(evt);
@@ -3787,7 +4208,178 @@ if (!Object.entries) {
 			};
 		}
 
-		
+		function exFilterColumn(table_arg, col_filter_arr, ajaxSource) {
+			var table_selector_jq_friendly,
+				j,
+				tmpStr,
+				column_number,
+				column_position,
+				filter_value,
+				fromId,
+				toId,
+				sliderId,
+				optionsObj,
+				min,
+				max,
+				exclude = false;
+			//check if the table arg is from new datatables API (capital "D")
+			if (table_arg.settings !== undefined) {
+				table_arg = table_arg.settings()[0].oInstance;
+			}
+			table_selector_jq_friendly = yadcf.generateTableSelectorJQFriendly2(table_arg);
+			if (isDOMSource(table_arg) || ajaxSource === true) {
+				for (j = 0; j < col_filter_arr.length; j++) {
+					column_number = col_filter_arr[j][0];
+					column_position = column_number;
+					exclude = false;
+					if (plugins[table_selector_jq_friendly] !== undefined && (plugins[table_selector_jq_friendly] !== undefined && plugins[table_selector_jq_friendly].ColReorder !== undefined)) {
+						column_position = plugins[table_selector_jq_friendly].ColReorder[column_number];
+					}
+					optionsObj = getOptions(table_arg.selector)[column_number];
+					filter_value = col_filter_arr[j][1];
+
+					switch (optionsObj.filter_type) {
+					case 'auto_complete':
+					case 'text':
+					case 'date':
+						if (filter_value !== undefined && filter_value.indexOf('_exclude_') !== -1) {
+							exclude = true;
+							filter_value = filter_value.replace('_exclude_', '');
+						}
+						$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).val(filter_value);
+						if (filter_value !== '') {
+							$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).addClass('inuse');
+						} else {
+							$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).removeClass('inuse');
+						}
+						tmpStr = yadcfMatchFilterString(table_arg, column_position, filter_value, optionsObj.filter_match_mode, false, exclude);
+						table_arg.fnSettings().aoPreSearchCols[column_position].sSearch = tmpStr;
+						break;
+					case 'select':
+						$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).val(filter_value);
+						if (filter_value !== '') {
+							$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).addClass('inuse');
+						} else {
+							$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).removeClass('inuse');
+						}
+						tmpStr = yadcfMatchFilterString(table_arg, column_position, filter_value, optionsObj.filter_match_mode, false);
+						table_arg.fnSettings().aoPreSearchCols[column_position].sSearch = tmpStr;
+						if (optionsObj.select_type !== undefined) {
+							refreshSelectPlugin(optionsObj, $('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number));
+						}
+						break;
+					case 'multi_select':
+						$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).val(filter_value);
+						tmpStr = yadcfMatchFilterString(table_arg, column_position, filter_value, optionsObj.filter_match_mode, true);
+						table_arg.fnSettings().aoPreSearchCols[column_position].sSearch = tmpStr;
+						if (optionsObj.select_type !== undefined) {
+							refreshSelectPlugin(optionsObj, $('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number));
+						}
+						break;
+					case 'range_date':
+						fromId = 'yadcf-filter-' + table_selector_jq_friendly + '-from-date-' + column_number;
+						toId = 'yadcf-filter-' + table_selector_jq_friendly + '-to-date-' + column_number;
+						$('#' + fromId).val(filter_value.from);
+						if (filter_value.from !== '') {
+							$('#' + fromId).addClass('inuse');
+						} else {
+							$('#' + fromId).removeClass('inuse');
+						}
+						$('#' + toId).val(filter_value.to);
+						if (filter_value.to !== '') {
+							$('#' + toId).addClass('inuse');
+						} else {
+							$('#' + toId).removeClass('inuse');
+						}
+						if (table_arg.fnSettings().oFeatures.bServerSide === true) {
+							min = filter_value.from;
+							max = filter_value.to;
+							table_arg.fnSettings().aoPreSearchCols[column_position].sSearch = min + '-yadcf_delim-' + max;
+						}
+						saveStateSave(table_arg, column_number, table_selector_jq_friendly, filter_value.from, filter_value.to);
+						break;
+					case 'range_number':
+						fromId = 'yadcf-filter-' + table_selector_jq_friendly + '-from-' + column_number;
+						toId = 'yadcf-filter-' + table_selector_jq_friendly + '-to-' + column_number;
+						$('#' + fromId).val(filter_value.from);
+						if (filter_value.from !== '') {
+							$('#' + fromId).addClass('inuse');
+						} else {
+							$('#' + fromId).removeClass('inuse');
+						}
+						$('#' + toId).val(filter_value.to);
+						if (filter_value.to !== '') {
+							$('#' + toId).addClass('inuse');
+						} else {
+							$('#' + toId).removeClass('inuse');
+						}
+						if (table_arg.fnSettings().oFeatures.bServerSide === true) {
+							table_arg.fnSettings().aoPreSearchCols[column_position].sSearch = filter_value.from + '-yadcf_delim-' + filter_value.to;
+						}
+						saveStateSave(table_arg, column_number, table_selector_jq_friendly, filter_value.from, filter_value.to);
+						break;
+					case 'range_number_slider':
+						sliderId = 'yadcf-filter-' + table_selector_jq_friendly + '-slider-' + column_number;
+						fromId = 'yadcf-filter-' + table_selector_jq_friendly + '-min_tip-' + column_number;
+						toId = 'yadcf-filter-' + table_selector_jq_friendly + '-max_tip-' + column_number;
+						if (filter_value.from !== '') {
+							min = $('#' + fromId).closest('.yadcf-filter-range-number-slider').find(".yadcf-filter-range-number-slider-min-tip-hidden").text();
+							max = $('#' + fromId).closest('.yadcf-filter-range-number-slider').find(".yadcf-filter-range-number-slider-max-tip-hidden").text();
+							$('#' + fromId).text(filter_value.from);
+							if (min !== filter_value.from) {
+								$('#' + fromId).parent().addClass('inuse');
+								$('#' + fromId).parent().parent().find('ui-slider-range').addClass('inuse');
+							} else {
+								$('#' + fromId).parent().removeClass('inuse');
+								$('#' + fromId).parent().parent().find('ui-slider-range').removeClass('inuse');
+							}
+							$('#' + sliderId).slider('values', 0, filter_value.from);
+						}
+						if (filter_value.to !== '') {
+							$('#' + toId).text(filter_value.to);
+							if (max !== filter_value.to) {
+								$('#' + toId).parent().addClass('inuse');
+								$('#' + toId).parent().parent().find('.ui-slider-range').addClass('inuse');
+							} else {
+								$('#' + toId).parent().removeClass('inuse');
+								$('#' + toId).parent().parent().find('.ui-slider-range').removeClass('inuse');
+							}
+							$('#' + sliderId).slider('values', 1, filter_value.to);
+						}
+						if (table_arg.fnSettings().oFeatures.bServerSide === true) {
+							table_arg.fnSettings().aoPreSearchCols[column_position].sSearch = filter_value.from + '-yadcf_delim-' + filter_value.to;
+						}
+						saveStateSave(table_arg, column_number, table_selector_jq_friendly, filter_value.from, filter_value.to);
+						break;
+					case 'custom_func':
+					case 'multi_select_custom_func':
+						$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).val(filter_value);
+						if (filter_value !== '') {
+							$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).addClass('inuse');
+						} else {
+							$('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number).removeClass('inuse');
+						}
+						if (table_arg.fnSettings().oFeatures.bServerSide === true) {
+							table_arg.fnSettings().aoPreSearchCols[column_position].sSearch = filter_value;
+						}
+						if (optionsObj.select_type !== undefined) {
+							refreshSelectPlugin(optionsObj, $('#yadcf-filter-' + table_selector_jq_friendly + '-' + column_number), filter_value);
+						}
+						saveStateSave(table_arg, column_number, table_selector_jq_friendly, filter_value, '');
+						break;
+					}
+				}
+				if (table_arg.fnSettings().oFeatures.bServerSide !== true) {
+					table_arg.fnDraw();
+				} else {
+					setTimeout(function () {
+						table_arg.fnDraw();
+					}, 10);
+				}
+			} else {
+				exFilterColumnQueue.push(exInternalFilterColumnAJAXQueue(table_arg, col_filter_arr));
+			}
+		}
 
 		function exGetColumnFilterVal(table_arg, column_number) {
 			var retVal,
@@ -3860,9 +4452,48 @@ if (!Object.entries) {
 			return retVal;
 		}
 
+		function clearStateSave(oTable, column_number, table_selector_jq_friendly) {
+			var yadcfState;
+			if (oTable.fnSettings().oFeatures.bStateSave === true) {
+				if (!oTable.fnSettings().oLoadedState) {
+					oTable.fnSettings().oLoadedState = {};
+					oTable.fnSettings().oApi._fnSaveState(oTable.fnSettings());
+				}
+				if (oTable.fnSettings().oLoadedState.yadcfState !== undefined && oTable.fnSettings().oLoadedState.yadcfState[table_selector_jq_friendly] !== undefined) {
+					oTable.fnSettings().oLoadedState.yadcfState[table_selector_jq_friendly][column_number] = undefined;
+				} else {
+					yadcfState = {};
+					yadcfState[table_selector_jq_friendly] = [];
+					yadcfState[table_selector_jq_friendly][column_number] = undefined;
+					oTable.fnSettings().oLoadedState.yadcfState = yadcfState;
+				}
+				oTable.fnSettings().oApi._fnSaveState(oTable.fnSettings());
+			}
+		}
 
-
-	
+		function saveStateSave(oTable, column_number, table_selector_jq_friendly, from, to) {
+			var yadcfState;
+			if (oTable.fnSettings().oFeatures.bStateSave === true) {
+				if (!oTable.fnSettings().oLoadedState) {
+					oTable.fnSettings().oLoadedState = {};
+				}
+				if (oTable.fnSettings().oLoadedState.yadcfState !== undefined && oTable.fnSettings().oLoadedState.yadcfState[table_selector_jq_friendly] !== undefined) {
+					oTable.fnSettings().oLoadedState.yadcfState[table_selector_jq_friendly][column_number] = {
+						from: from,
+						to: to
+					};
+				} else {
+					yadcfState = {};
+					yadcfState[table_selector_jq_friendly] = [];
+					yadcfState[table_selector_jq_friendly][column_number] = {
+						from: from,
+						to: to
+					};
+					oTable.fnSettings().oLoadedState.yadcfState = yadcfState;
+				}
+				oTable.fnSettings().oApi._fnSaveState(oTable.fnSettings());
+			}
+		}
 
 		function exResetAllFilters(table_arg, noRedraw, columns) {
 			var table_selector_jq_friendly,
@@ -3985,7 +4616,32 @@ if (!Object.entries) {
 			exResetAllFilters(table_arg, noRedraw, columns);
 		}
 
-		
+		function exFilterExternallyTriggered(table_arg) {
+			var columnsObj,
+				columnObjKey,
+				columnObj,
+				filterValue,
+				filtersValuesSingleElem,
+				filtersValuesArr = [];
+
+			//check if the table arg is from new datatables API (capital "D")
+			if (table_arg.settings !== undefined) {
+				table_arg = table_arg.settings()[0].oInstance;
+			}
+			columnsObj = getOptions(table_arg.selector);
+
+			for (columnObjKey in columnsObj) {
+				if (columnsObj.hasOwnProperty(columnObjKey)) {
+					columnObj = columnsObj[columnObjKey];
+					filterValue = exGetColumnFilterVal(table_arg, columnObj.column_number);
+					filtersValuesSingleElem = [];
+					filtersValuesSingleElem.push(columnObj.column_number);
+					filtersValuesSingleElem.push(filterValue);
+					filtersValuesArr.push(filtersValuesSingleElem);
+				}
+			}
+			exFilterColumn(table_arg, filtersValuesArr, true);
+		}
 
 		return {
 			init: init,
